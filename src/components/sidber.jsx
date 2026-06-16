@@ -23,8 +23,10 @@ const navItems = [
 
 const SidebarProps =  {
   open: boolean,
-  onClose: () => void
+  onClose: () => 
 }
+
+
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
   return (
