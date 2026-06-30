@@ -3,10 +3,14 @@ import { useState } from 'react'
 // import { Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import Header from './Header'
+
 import { Outlet } from 'react-router'
+
 const AdminLayout = () => {
 
-    // const [sidebarOpen, setSidebarOpen] = useState(true)
+    const [sidebarOpen, setSidebarOpen] = useState(true)
+    console.log(sidebarOpen)
+    console.log("LSKJDFLKSAJDFLKJ")
 
     return (
         <div className="flex h-screen overflow-hidden bg-background">

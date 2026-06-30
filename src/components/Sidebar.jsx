@@ -132,15 +132,18 @@ const navItems = [
 ]
 
 
-const Sidebar = () => {
+const Sidebar = ({ open, onClosed }) => {
 
-  const [isNavOpen, setIsNavOpen] = useState(false)
+  console.log(open, onClosed)
+
+  console.log("LHJELKJLDSJOSDJS")
+  // const [isNavOpen, setIsNavOpen] = useState(false)
 
   return (
     <aside
       className={
         `fixed inset-y-0 left-0 z-30 flex w-64 flex-col bg-sidebar transition-transform duration-300
-         lg:static lg:translate-x-0 ${isNavOpen ? 'translate-x-0' : '-translate-x-full'}`
+         lg:static lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`
       }
     >
       {/* Logo */}
