@@ -1,11 +1,9 @@
 import React from 'react'
 import { MdMenu, MdNotifications, MdSearch } from 'react-icons/md'
 import { useLocation } from 'react-router'
+const Header = ({onMenuClick}) => {
 
-const Header = () => {
-
-  const { pathname } = useLocation()
-  const page = pageTitles[pathname] ?? { title: 'Admin', description: '' }
+  console.log(onMenuClick,"hello")
 
   const pageTitles = {
     '/dashboard': { title: 'Dashboard', description: 'Welcome back, Admin' },
@@ -15,6 +13,11 @@ const Header = () => {
     '/categories': { title: 'Categories', description: 'Organise your product categories' },
     '/settings': { title: 'Settings', description: 'Configure your store settings' },
   }
+
+
+  const { pathname } = useLocation()
+  console.log(pathname)
+  const page = pageTitles[pathname] ?? { title: 'Admin', description: '' }
 
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-card px-6">
