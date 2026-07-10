@@ -1,5 +1,7 @@
-import { useState, React } from 'react'
-import { MdAdd, MdSearch, MdFilterList, MdEdit, MdDelete, MdVisibility } from 'react-icons/md'
+import { useState, useEffect } from 'react'
+import { useForm, Controller } from 'react-hook-form'
+import { MdAdd, MdSearch, MdFilterList, MdEdit, MdDelete, MdVisibility, MdCloudUpload } from 'react-icons/md'
+import { createProduct, updateProduct, deleteProduct } from '../utilits/api/productService'
 
 const initialProducts = [
   { id: 1, name: 'Classic Black Abaya', sku: 'ABY-001', category: 'Classic', price: 120, stock: 48, status: 'Active', image: 'CB' },
@@ -24,15 +26,47 @@ const categories = ['All', 'Classic', 'Premium', 'Casual', 'Occasion']
 
 const avatarColors = ['bg-gold/20 text-gold-dark', 'bg-blue-100 text-blue-700', 'bg-rose-100 text-rose-700', 'bg-emerald-100 text-emerald-700', 'bg-violet-100 text-violet-700']
 
-
 const Products = () => {
-
   const [products, setProducts] = useState(initialProducts)
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('All')
   const [showModal, setShowModal] = useState(false)
   const [editProduct, setEditProduct] = useState(null)
-  const [form, setForm] = useState({ name: '', sku: '', category: 'Classic', price: '', stock: '' })
+  const [preview, setPreview] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [serverError, setServerError] = useState(null)
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    watch,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      name: '',
+      description:"",
+      sku: '',
+      category: 'Borka',
+      price: '',
+      size52: '',
+      size54: "",
+      size56: "",
+    },
+  })
+
+  const watchedPhoto = watch('photo')
+
+  // Update preview whenever a new file is picked
+  useEffect(() => {
+    if (watchedPhoto && watchedPhoto.length > 0) {
+      const file = watchedPhoto[0]
+      const url = URL.createObjectURL(file)
+      setPreview(url)
+      return () => URL.revokeObjectURL(url)
+    }
+  }, [watchedPhoto])
 
   const filtered = products.filter((p) => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase())
@@ -42,49 +76,85 @@ const Products = () => {
 
   const openAdd = () => {
     setEditProduct(null)
-    setForm({ name: '', sku: '', category: 'Classic', price: '', stock: '' })
+    setServerError(null)
+    setPreview(null)
+    reset({ name: '', sku: '', category: 'Classic', price: '', stock: '', photo: null })
     setShowModal(true)
   }
 
   const openEdit = (p) => {
     setEditProduct(p)
-    setForm({ name: p.name, sku: p.sku, category: p.category, price: String(p.price), stock: String(p.stock) })
+    setServerError(null)
+    setPreview(p.photoUrl || null) // if your saved product has a photo URL
+    reset({
+      name: p.name,
+      sku: p.sku,
+      category: p.category,
+      price: String(p.price),
+      stock: String(p.stock),
+      photo: null,
+    })
     setShowModal(true)
   }
 
-  const handleDelete = (id) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id))
-  }
-
-  const handleSave = () => {
-    const stock = Number(form.stock)
-    const status = stock === 0 ? 'Out of Stock' : stock <= 10 ? 'Low Stock' : 'Active'
-    if (editProduct) {
-      setProducts((prev) =>
-        prev.map((p) =>
-          p.id === editProduct.id
-            ? { ...p, ...form, price: Number(form.price), stock, status }
-            : p
-        )
-      )
-    } else {
-      setProducts((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          name: form.name,
-          sku: form.sku,
-          category: form.category,
-          price: Number(form.price),
-          stock,
-          status,
-          image: form.name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase(),
-        },
-      ])
+  const handleDelete = async (id) => {
+    try {
+      await deleteProduct(id)
+      setProducts((prev) => prev.filter((p) => p.id !== id))
+    } catch (err) {
+      console.error(err)
+      // optionally show a toast here
     }
-    setShowModal(false)
   }
 
+  const onSubmit = async (data) => {
+    setSaving(true)
+    setServerError(null)
+    const stock = Number(data.stock)
+    const status = stock === 0 ? 'Out of Stock' : stock <= 10 ? 'Low Stock' : 'Active'
+
+    try {
+      if (editProduct) {
+        const updated = await updateProduct(editProduct.id, data)
+        setProducts((prev) =>
+          prev.map((p) =>
+            p.id === editProduct.id
+              ? {
+                  ...p,
+                  ...data,
+                  price: Number(data.price),
+                  stock,
+                  status,
+                  photoUrl: updated?.photoUrl || p.photoUrl,
+                }
+              : p
+          )
+        )
+      } else {
+        const created = await createProduct(data)
+        setProducts((prev) => [
+          ...prev,
+          {
+            id: created?.id || Date.now(),
+            name: data.name,
+            sku: data.sku,
+            category: data.category,
+            price: Number(data.price),
+            stock,
+            status,
+            image: data.name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase(),
+            photoUrl: created?.photoUrl || preview,
+          },
+        ])
+      }
+      setShowModal(false)
+    } catch (err) {
+      console.error(err)
+      setServerError(err.response?.data?.message || 'Failed to save product')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -149,9 +219,17 @@ const Products = () => {
                 <tr key={product.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
-                      <div className={`h-9 w-9 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${avatarColors[idx % avatarColors.length]}`}>
-                        {product.image}
-                      </div>
+                      {product.photoUrl ? (
+                        <img
+                          src={product.photoUrl}
+                          alt={product.name}
+                          className="h-9 w-9 rounded-lg object-cover shrink-0"
+                        />
+                      ) : (
+                        <div className={`h-9 w-9 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${avatarColors[idx % avatarColors.length]}`}>
+                          {product.image}
+                        </div>
+                      )}
                       <span className="font-medium text-foreground">{product.name}</span>
                     </div>
                   </td>
@@ -203,58 +281,139 @@ const Products = () => {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-card border border-border shadow-2xl">
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="w-full max-w-md rounded-2xl bg-card border border-border shadow-2xl"
+            noValidate
+          >
             <div className="border-b border-border px-6 py-4">
               <h3 className="font-heading text-lg font-semibold text-foreground">
                 {editProduct ? 'Edit Product' : 'Add New Product'}
               </h3>
             </div>
-            <div className="px-6 py-5 space-y-4">
-              {[
-                { label: 'Product Name', key: 'name', type: 'text', placeholder: 'e.g. Classic Black Abaya' },
-                { label: 'SKU', key: 'sku', type: 'text', placeholder: 'e.g. ABY-011' },
-                { label: 'Price (SAR)', key: 'price', type: 'number', placeholder: '0' },
-                { label: 'Stock Quantity', key: 'stock', type: 'number', placeholder: '0' },
-              ].map((field) => (
-                <div key={field.key}>
-                  <label className="block text-xs font-medium text-foreground mb-1">{field.label}</label>
-                  <input
-                    type={field.type}
-                    placeholder={field.placeholder}
-                    value={form[field.key]}
-                    onChange={(e) => setForm((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
-                  />
-                </div>
-              ))}
+
+            <div className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+              {/* Photo upload */}
+              <div>
+                <label className="block text-xs font-medium text-foreground mb-1">Product Photo</label>
+                <Controller
+                  name="photo"
+                  control={control}
+                  rules={{ required: editProduct ? false : 'Photo is required' }}
+                  render={({ field: { onChange, name, ref } }) => (
+                    <label
+                      htmlFor="photo-upload"
+                      className="flex items-center gap-3 rounded-lg border border-dashed border-input px-3 py-3 cursor-pointer hover:bg-muted/40 transition-colors"
+                    >
+                      {preview ? (
+                        <img src={preview} alt="Preview" className="h-14 w-14 rounded-lg object-cover" />
+                      ) : (
+                        <div className="h-14 w-14 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">
+                          <MdCloudUpload className="h-6 w-6" />
+                        </div>
+                      )}
+                      <div className="text-xs text-muted-foreground">
+                        <p className="font-medium text-foreground">Click to upload</p>
+                        <p>PNG or JPG</p>
+                      </div>
+                      <input
+                        id="photo-upload"
+                        type="files"
+                        accept="image/*"
+                        name={name}
+                        ref={ref}
+                        className="hidden"
+                        onChange={(e) => onChange(e.target.files)}
+                      />
+                    </label>
+                  )}
+                />
+                {errors.photo && <p className="text-xs text-red-500 mt-1">{errors.photo.message}</p>}
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-foreground mb-1">Product Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Classic Black Abaya"
+                  {...register('name', { required: 'Name is required' })}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
+                />
+                {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name.message}</p>}
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-foreground mb-1">SKU</label>
+                <input
+                  type="text"
+                  placeholder="e.g. ABY-011"
+                  {...register('sku', { required: 'SKU is required' })}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
+                />
+                {errors.sku && <p className="text-xs text-red-500 mt-1">{errors.sku.message}</p>}
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-foreground mb-1">Price (SAR)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0"
+                  {...register('price', {
+                    required: 'Price is required',
+                    min: { value: 0, message: 'Price must be positive' },
+                  })}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
+                />
+                {errors.price && <p className="text-xs text-red-500 mt-1">{errors.price.message}</p>}
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-foreground mb-1">Stock Quantity</label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  {...register('stock', {
+                    required: 'Stock is required',
+                    min: { value: 0, message: 'Stock cannot be negative' },
+                  })}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
+                />
+                {errors.stock && <p className="text-xs text-red-500 mt-1">{errors.stock.message}</p>}
+              </div>
+
               <div>
                 <label className="block text-xs font-medium text-foreground mb-1">Category</label>
                 <select
-                  value={form.category}
-                  onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))}
+                  {...register('category', { required: true })}
                   className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
                 >
-                  {['Classic', 'Premium', 'Casual', 'Occasion'].map((c) => (
+                  {['Abaya', 'Borka', 'Hijab', 'Fixed Hijab',].map((c) => (
                     <option key={c} value={c}>{c}</option>
                   ))}
                 </select>
               </div>
+
+              {serverError && <p className="text-xs text-red-500">{serverError}</p>}
             </div>
+
             <div className="border-t border-border px-6 py-4 flex justify-end gap-2">
               <button
+                type="button"
                 onClick={() => setShowModal(false)}
                 className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-muted transition-colors"
               >
                 Cancel
               </button>
               <button
-                onClick={handleSave}
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
+                type="submit"
+                disabled={saving}
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-60"
               >
-                {editProduct ? 'Save Changes' : 'Add Product'}
+                {saving ? 'Saving...' : editProduct ? 'Save Changes' : 'Add Product'}
               </button>
             </div>
-          </div>
+          </form>
         </div>
       )}
     </div>
