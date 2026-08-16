@@ -3,8 +3,6 @@ import { MdMenu, MdNotifications, MdSearch } from 'react-icons/md'
 import { useLocation } from 'react-router'
 const Header = ({onMenuClick}) => {
 
-  console.log(onMenuClick,"hello")
-
   const pageTitles = {
     '/dashboard': { title: 'Dashboard', description: 'Welcome back, Admin' },
     '/products': { title: 'Products', description: 'Manage your abaya collection' },
@@ -16,7 +14,6 @@ const Header = ({onMenuClick}) => {
 
 
   const { pathname } = useLocation()
-  console.log(pathname)
   const page = pageTitles[pathname] ?? { title: 'Admin', description: '' }
 
   return (

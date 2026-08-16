@@ -1,20 +1,46 @@
 // src/api/productService.js
 import axiosInstance from "./axiosInstance";
 
-export const createProduct = async (data) => {
-  const formData = new FormData();
-  formData.append("name", data.name);
-  formData.append("sku", data.sku);  formData.append("category", data.category);
-  formData.append("price", data.price);
-  formData.append("stock", data.stock);
+export const getProducts = async () => {
+  
+  try {
+    const response = await axiosInstance.get("/products");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    throw error;
+  }
+}
 
-  if (data.photo && data.photo.length > 0) {
-    formData.append("photo", data.photo[0]); // single image
+export const createProduct = async (productDetails) => {
+
+  const formData = new FormData();
+
+  // Append product details to FormData
+  Object.keys(productDetails).forEach((key) => {
+
+    if (key !== "images") {
+      formData.append(key, productDetails[key]);
+    }
+  });
+
+  if (productDetails.images && productDetails.images.length > 0) {
+    const imageFiles = Array.from(productDetails.images);
+
+    console.log("imageFiles", imageFiles)
+
+    imageFiles.forEach((image, index) => {
+      formData.append(`images`, image);
+    });
+
   }
 
-  const response = await axiosInstance.post("/products", formData, {
+  console.log("productDetails", productDetails)
+
+  const response = await axiosInstance.post("/products/new", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
+
   return response.data;
 };
 

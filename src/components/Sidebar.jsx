@@ -134,9 +134,9 @@ const navItems = [
 
 const Sidebar = ({ open, onClosed }) => {
 
-  console.log(open, onClosed)
+  // console.log(open, onClosed)
 
-  console.log("LHJELKJLDSJOSDJS")
+  // console.log("LHJELKJLDSJOSDJS")
   // const [isNavOpen, setIsNavOpen] = useState(false)
 
   return (
