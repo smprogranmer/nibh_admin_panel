@@ -68,7 +68,6 @@ const Products = () => {
 
   // Update preview whenever a new file is picked
   useEffect(() => {
-    
     if (!watchedImages?.length) {
       setPreview([]);
       return;
@@ -91,6 +90,7 @@ const Products = () => {
         const data = await getProducts();
         const reversedProducts = [...data.Products].reverse(); // Reverse the products array
         setProducts(reversedProducts); // Assuming the API returns an object with a "Products" array
+        console.log(reversedProducts);
       } catch (error) {
         console.error("Failed to fetch products:", error);
       }
@@ -138,7 +138,7 @@ const Products = () => {
       description: p.description || "",
       price: String(p.price) || "",
       category: p.category || "Classic",
-      size52: p.sizes["52"]|| "",
+      size52: p.sizes["52"] || "",
       size54: p.sizes["54"] || "",
       size56: p.sizes["56"] || "",
       images: [],
@@ -159,16 +159,16 @@ const Products = () => {
   const onSubmit = async (productData) => {
     // setSaving(true)
     setServerError(null);
-    console.log(productData);
-
+    
     // const stock = Number(data.stock)
     // const status = stock === 0 ? 'Out of Stock' : stock <= 10 ? 'Low Stock' : 'Active'
 
     if (editProduct) {
-      console.log("Updating product:", editProduct, productData);
-      const updated = await updateProduct(editProduct.id, data);
+      const updated = await updateProduct(editProduct._id, productData);
+      setShowModal(false)
     } else {
       const created = await createProduct(productData);
+      setShowModal(false)
     }
 
     // try {
@@ -351,7 +351,8 @@ const Products = () => {
           >
             <div className="border-b border-border px-6 py-4">
               <h3 className="font-heading text-lg font-semibold text-foreground">
-                {editProduct ? "Edit Product" : "Add New Product"} - {editProduct?.name || ""}
+                {editProduct ? "Edit Product" : "Add New Product"} -{" "}
+                {editProduct?.name || ""}
               </h3>
             </div>
 
@@ -365,11 +366,6 @@ const Products = () => {
                   type="file"
                   multiple
                   accept="image/*"
-                  {...register("images", {
-                    required: "Images are required",
-                    validate: (files) =>
-                      files.length <= 5 || "Maximum 5 images",
-                  })}
                 />
                 <div className="grid grid-cols-3 gap-2">
                   {preview.map((img, index) => (
@@ -565,7 +561,8 @@ const Products = () => {
               <button
                 type="submit"
                 disabled={saving}
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-60"
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground
+                 hover:opacity-90 transition-opacity disabled:opacity-60"
               >
                 {saving
                   ? "Saving..."
