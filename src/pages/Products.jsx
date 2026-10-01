@@ -90,7 +90,6 @@ const Products = () => {
         const data = await getProducts();
         const reversedProducts = [...data.Products].reverse(); // Reverse the products array
         setProducts(reversedProducts); // Assuming the API returns an object with a "Products" array
-        console.log(reversedProducts);
       } catch (error) {
         console.error("Failed to fetch products:", error);
       }
@@ -159,16 +158,16 @@ const Products = () => {
   const onSubmit = async (productData) => {
     // setSaving(true)
     setServerError(null);
-    
+
     // const stock = Number(data.stock)
     // const status = stock === 0 ? 'Out of Stock' : stock <= 10 ? 'Low Stock' : 'Active'
 
     if (editProduct) {
       const updated = await updateProduct(editProduct._id, productData);
-      setShowModal(false)
+      setShowModal(false);
     } else {
       const created = await createProduct(productData);
-      setShowModal(false)
+      setShowModal(false);
     }
 
     // try {
@@ -366,6 +365,11 @@ const Products = () => {
                   type="file"
                   multiple
                   accept="image/*"
+                  {...register("images", {
+                    required: "Images are required",
+                    validate: (files) =>
+                      files.length <= 5 || "Maximum 5 images",
+                  })}
                 />
                 <div className="grid grid-cols-3 gap-2">
                   {preview.map((img, index) => (

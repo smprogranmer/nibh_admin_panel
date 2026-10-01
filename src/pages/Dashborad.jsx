@@ -9,7 +9,7 @@ const Dashborad = () => {
   useEffect(() => {
     // Replace with your actual backend URL
 
-    axiosInstance.get('https://probable-lamp-69gg79pr79gr2xvw9-3000.app.github.dev/')
+    axiosInstance.get('https://ibh-amin-serveerr.vercel.app/')
       .then(response => {
         setStatus(`Success! Server says: ${JSON.stringify(response.data)}`);
       })
