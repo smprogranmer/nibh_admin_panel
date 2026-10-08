@@ -156,18 +156,24 @@ const Products = () => {
   };
 
   const onSubmit = async (productData) => {
-    // setSaving(true)
+    setSaving(true);
     setServerError(null);
 
     // const stock = Number(data.stock)
     // const status = stock === 0 ? 'Out of Stock' : stock <= 10 ? 'Low Stock' : 'Active'
 
-    if (editProduct) {
-      const updated = await updateProduct(editProduct._id, productData);
-      setShowModal(false);
-    } else {
-      const created = await createProduct(productData);
-      setShowModal(false);
+    try {
+      if (editProduct) {
+        const updated = await updateProduct(editProduct._id, productData);
+        setShowModal(false);
+      } else {
+        const created = await createProduct(productData);
+        setShowModal(false);
+      }
+    } catch (err) {
+      setServerError(
+        err.response?.data?.message || err.message || "An error occurred",
+      );
     }
 
     // try {
@@ -576,6 +582,7 @@ const Products = () => {
               </button>
             </div>
           </form>
+          {serverError && <p>{serverError}</p>}
         </div>
       )}
     </div>
