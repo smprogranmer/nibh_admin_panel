@@ -7,7 +7,6 @@ import {
   MdEdit,
   MdDelete,
   MdVisibility,
-  MdCloudUpload,
 } from "react-icons/md";
 import {
   createProduct,
@@ -45,7 +44,6 @@ const Products = () => {
   const {
     register,
     handleSubmit,
-    control,
     reset,
     watch,
     formState: { errors },
@@ -66,10 +64,10 @@ const Products = () => {
 
   const watchedImages = watch("images");
 
-  // Update preview whenever a new file is picked
+  // নতুন ফাইল সিলেক্ট করলে শুধু তখনই প্রিভিউ আপডেট হবে
   useEffect(() => {
-    if (!watchedImages?.length) {
-      setPreview([]);
+    // যদি নতুন কোনো ফাইল সিলেক্ট করা না হয়, তবে কিছু করার দরকার নেই (পুরোনো প্রিভিউ ঠিক থাকবে)
+    if (!watchedImages || watchedImages.length === 0) {
       return;
     }
 
@@ -126,10 +124,12 @@ const Products = () => {
   };
 
   const openEdit = (p) => {
-    console.log("Editing product:", p);
+    console.log("Editing product:", p.images);
     setEditProduct(p);
     setServerError(null);
-    setPreview(p.images || null); // if your saved product has a photo URL
+    // এখানে অবজেক্টের অ্যারে থেকে শুধু URL গুলো বের করে নেওয়া হচ্ছে
+    const imageUrls = p.images ? p.images.map((img) => img.url) : [];
+    setPreview(imageUrls);
     reset({
       name: p.name || "",
       model: p.model || "",
@@ -362,8 +362,7 @@ const Products = () => {
             </div>
 
             <div className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
-              {/* Photo upload */}
-              <div>
+              {/* <div>
                 <label className="block text-xs font-medium text-foreground mb-1">
                   Product Photos
                 </label>
@@ -386,6 +385,43 @@ const Products = () => {
                     />
                   ))}
                 </div>
+                {errors.images && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.images.message}
+                  </p>
+                )}
+              </div> */}
+              <div>
+                <label className="block text-xs font-medium text-foreground mb-1">
+                  Product Photos
+                </label>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  {...register("images", {
+                    // যদি এডিট মোড না থাকে (অর্থাৎ নতুন প্রোডাক্ট হয়) শুধু তখন বাধ্যতামূলক হবে
+                    required: editProduct ? false : "Images are required",
+                    validate: (files) => {
+                      // এডিট করার সময় নতুন ফাইল না দিলেও যেন সমস্যা না করে
+                      if (editProduct && (!files || files.length === 0))
+                        return true;
+                      return !files || files.length <= 5 || "Maximum 5 images";
+                    },
+                  })}
+                />
+
+                <div className="grid grid-cols-3 gap-2 mt-2">
+                  {preview.map((img, index) => (
+                    <img
+                      key={index}
+                      src={img}
+                      alt={`Product ${index + 1}`}
+                      className="w-24 h-24 rounded object-cover"
+                    />
+                  ))}
+                </div>
+
                 {errors.images && (
                   <p className="text-xs text-red-500 mt-1">
                     {errors.images.message}
