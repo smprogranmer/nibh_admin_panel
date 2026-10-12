@@ -8,7 +8,7 @@ import { Outlet } from 'react-router'
 
 const AdminLayout = () => {
 
-    const [sidebarOpen, setSidebarOpen] = useState(true)
+    const [sidebarOpen, setSidebarOpen] = useState(false)
 
     return (
         <div className="flex h-screen overflow-hidden bg-background">
